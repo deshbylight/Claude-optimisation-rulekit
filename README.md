@@ -95,6 +95,8 @@ leaves `CLAUDE.md`, other settings keys and `.gitignore` entries and lists them 
 - [Cost](Docs/Guide/Cost.md) — measuring and cutting cost; measured clean-repo baseline.
 - [Tools](Docs/Guide/Tools.md) — disabled vs available tools and skills, and why.
 - [Fix log](Docs/Guide/Fixes.md) — every fix behind the kit: problem, why this shape, what it fixes.
+- [Third-party skills and tools](Docs/Guide/ThirdParty.md) — skills used alongside the kit and how
+  to adopt them; Graft (Trail-code) as an optional code-graph layer for new projects.
 - [Roadmap](Docs/Guide/Roadmap.md) — gaps and possible additions, by priority.
 - [Example `CLAUDE.md`](examples/CLAUDE.md) — the template filled in for a fictional project.
 - [Changelog](CHANGELOG.md).

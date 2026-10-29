@@ -2,6 +2,12 @@
 
 Format: newest first; one line per user-visible change.
 
+## Unreleased
+
+- `Docs/Guide/ThirdParty.md`: what the kit ships vs. third-party skills used alongside it
+  (`mattpocock/skills`, `obra/superpowers`), how to adopt them, and Graft (Trail-code) as an
+  optional code-graph layer for new projects with its points of contact with the kit.
+
 ## 0.4.0 — 2026-10-29
 
 - `install.py --uninstall`: removes kit files unchanged since install (manifest now stores hashes)
