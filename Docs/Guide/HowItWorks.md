@@ -72,7 +72,9 @@ These target the failure modes that cost the most rework, independent of languag
 | Invented APIs, paths, library behavior | Contract: Grep/Read first; evidence labels |
 | "Done" without proof | Build ≠ verified; runtime state is unverified until a check ran this session |
 | Bugs hidden by fallbacks/retries/flags | `RR/no-masking.md` + `Docs/Review/OpenDefects.md` |
-| Plans with unchecked claims, owner asked trivia | `RR/planning.md` |
+| Plans with unchecked claims, owner asked trivia | `RR/planning.md`, `Docs/plans/_TEMPLATE.md` |
+| Logic tangled with framework/IO, hidden state, O(N) fallbacks | `RR/architecture.md`: pure core, Config/Output/Transient, dense ids, phases |
+| Large work lost across chats, stages left broken | `RR/decomposition.md`: map file, one check + commit per stage |
 | Reinventing existing mechanisms | `RR/search.md` |
 | Unscoped edits, drive-by refactors | Approval before code edits; minimal scope |
 | Rule sprawl | `RR/rule-authoring.md`: cheapest level that still fires |

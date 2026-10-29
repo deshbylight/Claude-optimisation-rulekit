@@ -48,7 +48,7 @@ cannot find in files; reports unverified commands and kept settings; commits the
 
 ### Teams
 
-Commit what the script and the prompt produced (`CLAUDE.md`, `.claude/`, `Tools/`, `Docs/Review/`).
+Commit what the script and the prompt produced (`CLAUDE.md`, `.claude/`, `Tools/`, `Docs/Review/`, `Docs/plans/`).
 Anyone who clones your project then gets the same setup with no install. `--user` settings are
 per machine: each member runs `python rulekit/install.py <project> --user` once, or merges
 `user/settings.json` by hand.
@@ -76,7 +76,7 @@ leaves `CLAUDE.md`, other settings keys and `.gitignore` entries and lists them 
 ## Manual install
 
 1. Copy `template/CLAUDE.md` to the repository root as `CLAUDE.md`, and `.claude/`, `Tools/` and
-   `Docs/Review/` into it; merge `user/settings.json` into `~/.claude/settings.json` (see below).
+   `Docs/Review/` and `Docs/plans/` into it; merge `user/settings.json` into `~/.claude/settings.json` (see below).
 2. Fill the `<placeholders>` in `CLAUDE.md`; delete lines that do not apply.
 3. Optional: set `env.RULEKIT_REPLY_LANG` in `.claude/settings.json` (e.g. `"Russian"`) when you chat
    in a language other than English.
@@ -113,6 +113,7 @@ leaves `CLAUDE.md`, other settings keys and `.gitignore` entries and lists them 
 | `Tools/*.py` | never (hooks run outside the context) | Guards, nudges, measurement |
 | `install.py`, `.claude/rulekit/ADAPT.md` | never / once on request | One-command install; the adaptation prompt; `manifest.json` records the installed version |
 | `Docs/Review/OpenDefects.md` | only when read | Ledger for confirmed, not yet fixed defects |
+| `Docs/plans/_TEMPLATE.md` | only when read | Plan skeleton for `RR/planning.md`; maps for `RR/decomposition.md` live next to it |
 | `Tools/check_kit.py`, `Tools/tests/` | never | Kit CI: JSON, language, machine paths, private terms, links; hook tests |
 
 ## Settings (`.claude/settings.json`)

@@ -29,11 +29,10 @@ been used in practice in a stack-specific form; "port" means generalize it, not 
 |------|---------|
 | Knowledge-base search | Keyword/alias index over `Docs/` and rules, so the agent finds the owning page with one call instead of a broad Grep |
 | Symbol lookup wrapper | Definitions, writes, readers, callers and function bodies by name for the project's language; replaces grep + sed chains (largest re-read source in big codebases) |
-| Code map | `Docs/code-map/` with one row per source folder and a curated symbol list; a CI check that every folder has a row |
+| Systems index | A generator listing, per source folder, its `Docs/Systems/` entry and the rules whose `paths:` match it; a CI check that every folder has an entry and no glob is dead |
 | Rule catalog + CI | Generated index of all rules with descriptions; CI validates frontmatter, links and catalog freshness |
 | Codex / other agents | `AGENTS.md` pointing to the same rules; a small script that prints the applicable rules for a path; Codex hooks mirroring the Claude ones |
 | Path-scoped rule examples | One or two neutral examples in `.claude/rules/` (e.g. tests folder, migrations folder) |
-| Planning template | `Docs/plans/_TEMPLATE.md` matching `RR/planning.md` steps |
 
 ## Deliberately left out
 

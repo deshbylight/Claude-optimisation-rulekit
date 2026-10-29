@@ -4,6 +4,10 @@ Format: newest first; one line per user-visible change.
 
 ## Unreleased
 
+- New on-demand rules: `architecture.md` (code decomposition from scratch: pure core vs boundary,
+  Config/Output/Transient, dense ids and O(1) indexes, phases, determinism, per-system docs) and
+  `decomposition.md` (large work split into one-session stages with a map file); template trigger lines.
+- `Docs/plans/_TEMPLATE.md` (installed); `Docs/Guide/WritingRules.md`: rules by code module.
 - `Docs/Guide/ThirdParty.md`: what the kit ships vs. third-party skills used alongside it
   (`mattpocock/skills`, `obra/superpowers`), how to adopt them, and Graft (Trail-code) as an
   optional code-graph layer for new projects with its points of contact with the kit.

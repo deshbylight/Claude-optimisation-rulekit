@@ -56,6 +56,8 @@ Chat language: <every reply to the user is in LANGUAGE; code, identifiers, comma
 
 ## Layer 2 — task triggers (Read before starting)
 
+- New system, module or project; code moving between layers: `RR/architecture.md`.
+- Work too large for one chat (new system, migration, multi-module feature): `RR/decomposition.md`.
 - Code review, PR review, self-review of a large change: `RR/review.md`.
 - Several chats/agents in one checkout, shared builds or logs: `RR/shared-workspace.md`.
 - <Topic>: `RR/<topic>.md`.

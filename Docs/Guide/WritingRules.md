@@ -97,6 +97,30 @@ Layer 2 trigger line.
 | Mechanical limit the model keeps breaking | A hook; L1 keeps one line or nothing |
 | Why, history, examples, measurements | `Docs/` |
 
+## Rules by code module
+
+Project knowledge follows the code's decomposition (`.claude/reference-rules/architecture.md`), so
+a task loads the rules of the module it touches and nothing else.
+
+- **One path-scoped rule set per system**: `.claude/rules/<system>/<topic>.md`, `paths:` = that
+  system's folders or file patterns (`src/billing/**/*.py`, `**/*Parser*.{h,cpp}`). Split a
+  system's rules by topic (state, hot path, identity), each with targeted globs, instead of one file
+  that matches the whole tree.
+- **Glob audit**: a rule whose glob matches every source folder is a baseline cost on every file
+  touch; narrow it, or move it to `CLAUDE.md` if it really is project-wide law.
+- **Canon page per system** (`Docs/<system>/Canon.md`): the invariants in prose, with the why. Each
+  rule has `Ref: <canon path>` in its frontmatter; the rule is the enforcement digest, the canon the
+  explanation. Decisions → `Docs/Decisions/ADR-NNN-<topic>.md` (problem, decision, alternatives
+  rejected); the canon links them.
+- **System entry per system** (`Docs/Systems/<system>.md`): entry points, layers, owners, files,
+  how to verify. `CLAUDE.md` Layer 1 says "before changing a system, read its system entry"; it
+  does not list the systems.
+- **Nested `CLAUDE.md`** (`src/<system>/CLAUDE.md`) loads when Claude reads files in that folder. Use
+  it only for a self-contained subtree with its own build or language; otherwise prefer path-scoped
+  rules, which load per file pattern rather than per folder.
+- **Generated index** (optional): a script that lists, per source folder, which rules match it,
+  catches dead globs and blanket rules; run it in CI.
+
 ## Review checklist before committing a rule
 
 1. Does a failure in a real chat motivate it? Name it in the commit message.

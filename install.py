@@ -51,6 +51,7 @@ FILES = [
     "Tools/claude_session_grep.py",
     "Tools/ctx_stats.py",
     "Docs/Review/OpenDefects.md",
+    "Docs/plans/_TEMPLATE.md",
 ]
 GITIGNORE = [".claude/handoff/", ".claude/settings.local.json", "*.rulekit-bak"]
 HOOK_SCRIPT_RE = re.compile(r"Tools/[\w.-]+\.py")

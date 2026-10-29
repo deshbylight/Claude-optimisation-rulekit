@@ -24,7 +24,7 @@ their consequences. A `.md`/`Tools/`-only change the owner asked for needs no do
 
 ## Must
 
-1. **Draft** in `Docs/plans/YYYY-MM-DD-<topic>.md`: goal, ownership, files, steps.
+1. **Draft** in `Docs/plans/YYYY-MM-DD-<topic>.md` from `Docs/plans/_TEMPLATE.md`: goal, ownership, files, steps.
 2. **Weak-point pass** per step: failure modes; value table (negative/zero/overflow/empty/sentinel);
    lifetime, concurrency, init/teardown order; persistence; perf in hot paths; interaction with
    existing systems; conflicting decisions or rules. Each finding becomes a plan item (fix, guard
