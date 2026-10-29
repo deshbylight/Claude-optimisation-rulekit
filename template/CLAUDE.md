@@ -4,7 +4,7 @@
      it is re-sent on every model call. Detail belongs in `.claude/reference-rules/` (read on demand)
      or path-scoped `.claude/rules/` (loaded only when a matching file is touched). -->
 
-Chat language: <every reply to the user is in LANGUAGE; code, identifiers, commands and log text stay as-is>.
+Chat language: every reply to the user is in English; code, identifiers, commands and log text stay as-is.
 
 - Project: <one line: what it is, stack, main entry points>. Build: `<build command>`. Tests: `<test command>`.
 - Architecture: <2-3 lines of invariants that no generic advice may override>.

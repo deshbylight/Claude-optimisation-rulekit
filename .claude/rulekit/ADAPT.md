@@ -47,8 +47,15 @@ code changes.
   suggestion; it printed them as `kept …`. Mention them in the report, do not change them.
 - Tools in `permissions.deny` that this project actually uses (notebooks → `NotebookEdit`,
   worktrees → `EnterWorktree`/`ExitWorktree`, subagents → `Agent`): ask before removing the entry.
-- Optional, ask once if relevant: chat language (`env.RULEKIT_REPLY_LANG`), claude.ai connectors
-  needed in this repo (`disableClaudeAiConnectors`).
+- Verify gate: `env.RULEKIT_VERIFY_RE` must match the build and test commands now in `CLAUDE.md`
+  (the installer set it from detected commands, or left it out); set or fix it. Source files outside
+  the default extensions (`Tools/claude_verify_gate.py`): set `env.RULEKIT_SOURCE_RE`.
+- Shell routes: for each wrapper the project has (build, test, log reader, symbol lookup), add a route
+  to `.claude/rulekit/shell-routes.json` that blocks the raw command and names the wrapper.
+- Language guard: files that are legitimately non-English (localization, fixtures) outside the default
+  skip paths → `env.RULEKIT_FILE_LANG_SKIP`; a project whose docs are not in English →
+  `env.RULEKIT_FILE_LANG_GUARD = "off"` (ask first).
+- Optional, ask once if relevant: claude.ai connectors needed in this repo (`disableClaudeAiConnectors`).
 
 ## 4. Questions
 

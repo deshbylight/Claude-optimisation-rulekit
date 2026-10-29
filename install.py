@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Install the rulekit into a project in one command; safe to re-run.
 
-    python install.py [TARGET] [--lang Russian] [--user] [--keep-powershell] [--force] [--dry-run]
+    python install.py [TARGET] [--user] [--keep-powershell] [--force] [--dry-run]
 
 TARGET defaults to the current directory. What it does:
   1. Copies kit files (rules, output style, skill, hooks, measurement tools, adaptation prompt).
@@ -21,6 +21,10 @@ TARGET defaults to the current directory. What it does:
   7. Writes `.claude/rulekit/manifest.json` (kit version, installed files with hashes) and prints the
      one prompt that finishes the adaptation inside Claude Code.
   8. Hook commands use `python` when it is a working Python 3, else `python3` (macOS/Linux).
+  9. `env.RULEKIT_VERIFY_RE` (verify gate): set from the detected build/test commands; none found →
+     the gate stays off until the adaptation step sets it.
+ 10. Files a previous kit version installed and this one no longer ships are removed when unchanged,
+     and their hooks unwired.
 `--uninstall` removes the kit files that are unchanged since install and the kit hooks; it leaves
 CLAUDE.md, other settings keys and .gitignore entries and lists them for review.
 Exit 1 on an unparsable existing settings file (nothing is written then).
@@ -36,7 +40,7 @@ import subprocess
 import sys
 
 KIT = os.path.dirname(os.path.abspath(__file__))
-VERSION = "0.4.0"
+VERSION = "0.5.0"
 
 # kit path -> target path; directories are copied file by file.
 FILES = [
@@ -47,7 +51,11 @@ FILES = [
     "Tools/claude_read_guard.py",
     "Tools/claude_topic_gate.py",
     "Tools/claude_session_length.py",
-    "Tools/claude_reply_language.py",
+    "Tools/claude_verify_gate.py",
+    "Tools/claude_shell_guard.py",
+    "Tools/claude_language_guard.py",
+    "Tools/claude_commit_reminder.py",
+    ".claude/rulekit/shell-routes.json",
     "Tools/claude_session_grep.py",
     "Tools/ctx_stats.py",
     "Docs/Review/OpenDefects.md",
@@ -102,12 +110,12 @@ class Installer:
         self.done.append(f"wrote {rel}")
 
     # 2. CLAUDE.md
-    def claude_md(self, lang: str):
+    def claude_md(self):
         if os.path.isfile(os.path.join(self.target, MANIFEST)):
             self.kept.append("CLAUDE.md: kit already installed here (manifest found), not touched")
             return
         with open(os.path.join(KIT, "template", "CLAUDE.md"), encoding="utf-8") as f:
-            text = fill_template(f.read(), self.target, lang)
+            text = fill_template(f.read(), self.target)
         if self.python != "python":
             text = text.replace("`python Tools/", f"`{self.python} Tools/")
         if os.path.isfile(os.path.join(self.target, "CLAUDE.md")):
@@ -140,6 +148,35 @@ class Installer:
                     f.write("\n")
             self.done += [f"{label}: {n}" for n in changes]
         return True
+
+    def retire(self, old_files: dict):
+        """Removes files an older kit version installed that this version no longer ships."""
+        gone = {rel: sha for rel, sha in old_files.items() if rel not in self.installed}
+        removed = set()
+        for rel, sha in sorted(gone.items()):
+            full = os.path.join(self.target, rel)
+            if not os.path.isfile(full):
+                removed.add(rel)
+                continue
+            with open(full, encoding="utf-8", errors="replace") as f:
+                if digest(f.read()) != sha:
+                    self.kept.append(f"{rel}: no longer part of the kit but changed since install, kept")
+                    continue
+            if not self.dry_run:
+                os.remove(full)
+            removed.add(rel)
+            self.done.append(f"removed {rel} (no longer part of the kit)")
+        scripts = {hook_key(f"Tools/{os.path.basename(r)}") for r in removed if r.startswith("Tools/")}
+        settings_path = os.path.join(self.target, ".claude", "settings.json")
+        if scripts and os.path.isfile(settings_path):
+            with open(settings_path, encoding="utf-8") as f:
+                current = json.load(f)
+            unwired = unwire_hooks(current.get("hooks", {}), scripts)
+            if unwired and not self.dry_run:
+                with open(settings_path, "w", encoding="utf-8", newline="\n") as f:
+                    json.dump(current, f, indent=2, ensure_ascii=False)
+                    f.write("\n")
+            self.done += [f".claude/settings.json: removed hook {r}" for r in unwired]
 
     def uninstall(self) -> int:
         path = os.path.join(self.target, MANIFEST)
@@ -351,12 +388,15 @@ def detect(target: str) -> dict:
     return found
 
 
-def fill_template(text: str, target: str, lang: str) -> str:
+def verify_regex(found: dict) -> str:
+    """Regex for the verify gate from the detected build/test commands; empty when none."""
+    return "|".join(re.escape(found[k]) for k in ("build", "test") if found[k])
+
+
+def fill_template(text: str, target: str) -> str:
     d = detect(target)
     name = os.path.basename(os.path.abspath(target))
     text = text.replace("# <ProjectName>", f"# {name}", 1)
-    text = text.replace("<every reply to the user is in LANGUAGE; code, identifiers, commands and log text stay as-is>",
-                        f"every reply to the user is in {lang or 'English'}; code, identifiers, commands and log text stay as-is")
     if d["stack"]:
         text = text.replace("<one line: what it is, stack, main entry points>",
                             f"<one line: what it is, main entry points>; stack: {', '.join(d['stack'])}")
@@ -373,7 +413,6 @@ def fill_template(text: str, target: str, lang: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("target", nargs="?", default=os.getcwd())
-    ap.add_argument("--lang", default="", help="chat language, e.g. Russian (default English)")
     ap.add_argument("--user", action="store_true", help="also merge user/settings.json into ~/.claude/settings.json")
     ap.add_argument("--keep-powershell", action="store_true", help="do not deny the PowerShell tool on Windows")
     ap.add_argument("--force", action="store_true", help="overwrite kit files that differ (backups kept)")
@@ -404,12 +443,11 @@ def main() -> int:
         kit_settings = json.load(f)
     inst.python = python_command()
     set_python(kit_settings, inst.python)
-    if args.lang:
-        kit_settings["env"]["RULEKIT_REPLY_LANG"] = args.lang
+    verify = verify_regex(detect(target))
+    if verify:
+        kit_settings["env"]["RULEKIT_VERIFY_RE"] = verify
     else:
-        kit_settings["env"].pop("RULEKIT_REPLY_LANG", None)
-        if not kit_settings["env"]:
-            del kit_settings["env"]
+        del kit_settings["env"]
     deny_ps = platform.system() == "Windows" and not args.keep_powershell and git_bash_available()
     if deny_ps:
         kit_settings["permissions"]["deny"].append("PowerShell")
@@ -423,9 +461,18 @@ def main() -> int:
                                    user_settings, "~/.claude/settings.json", backup=True):
             return 1
 
+    old_files = {}
+    if os.path.isfile(os.path.join(target, MANIFEST)):
+        try:
+            with open(os.path.join(target, MANIFEST), encoding="utf-8") as f:
+                old_files = json.load(f).get("files") or {}
+        except ValueError:
+            pass
     for rel in FILES:
         inst.copy(rel)
-    inst.claude_md(args.lang)
+    if isinstance(old_files, dict):
+        inst.retire(old_files)
+    inst.claude_md()
     inst.gitignore()
     manifest = {"version": VERSION, "files": dict(sorted(inst.installed.items()))}
     inst._write(MANIFEST, json.dumps(manifest, indent=2) + "\n")

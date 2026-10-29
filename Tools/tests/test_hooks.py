@@ -168,15 +168,106 @@ class SessionLengthTest(TempDirCase):
         self.assertEqual(r.stdout, "")
 
 
-class ReplyLanguageTest(unittest.TestCase):
-    SCRIPT = "claude_reply_language.py"
+def tool_use(n: int, name: str, **tool_input) -> str:
+    return assistant_line(n, 20_000, [{"type": "tool_use", "id": f"toolu_{n}", "name": name, "input": tool_input}])
 
-    def test_silent_when_unset(self):
-        self.assertEqual(run_hook(self.SCRIPT, {"prompt": "hi"}).stdout.strip(), "")
 
-    def test_names_language(self):
-        r = run_hook(self.SCRIPT, {"prompt": "hi"}, {"RULEKIT_REPLY_LANG": "German"})
-        self.assertIn("German", r.stdout)
+def tool_result(n: int, error: bool = False) -> str:
+    return compact({"parentUuid": None, "isSidechain": False, "type": "user",
+                    "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": f"toolu_{n}",
+                                                             "content": "ok", "is_error": error}]}})
+
+
+class VerifyGateTest(TempDirCase):
+    SCRIPT = "claude_verify_gate.py"
+    ENV = {"RULEKIT_VERIFY_RE": r"make\ test"}
+
+    def stop(self, lines, env=None):
+        payload = {"session_id": str(uuid.uuid4()), "transcript_path": self.transcript(lines)}
+        return run_hook(self.SCRIPT, payload, self.ENV if env is None else env)
+
+    def test_blocks_edit_without_test(self):
+        r = self.stop([tool_use(1, "Edit", file_path="src/app.py", old_string="a", new_string="b")])
+        self.assertEqual(json.loads(r.stdout)["decision"], "block")
+        self.assertIn("app.py", r.stdout)
+
+    def test_passes_after_successful_test(self):
+        lines = [tool_use(1, "Edit", file_path="src/app.py"), tool_use(2, "Bash", command="make test"), tool_result(2)]
+        self.assertEqual(self.stop(lines).stdout, "")
+
+    def test_failed_test_does_not_count(self):
+        lines = [tool_use(1, "Edit", file_path="src/app.py"), tool_use(2, "Bash", command="make test"),
+                 tool_result(2, error=True)]
+        self.assertIn("block", self.stop(lines).stdout)
+
+    def test_docs_edit_and_unset_regex_pass(self):
+        self.assertEqual(self.stop([tool_use(1, "Edit", file_path="README.md")]).stdout, "")
+        self.assertEqual(self.stop([tool_use(1, "Edit", file_path="src/app.py")], env={}).stdout, "")
+
+
+class ShellGuardTest(TempDirCase):
+    SCRIPT = "claude_shell_guard.py"
+
+    def run_cmd(self, command: str):
+        os.makedirs(os.path.join(self.dir, ".claude", "rulekit"), exist_ok=True)
+        self.write(os.path.join(".claude", "rulekit", "shell-routes.json"), json.dumps(
+            {"routes": [{"match": r"\bmake\s+build\b", "unless": "--quiet", "say": "run scripts/build.py"}]}))
+        return run_hook(self.SCRIPT, {"tool_name": "Bash", "tool_input": {"command": command}},
+                        {"CLAUDE_PROJECT_DIR": self.dir})
+
+    def test_route_blocks(self):
+        r = self.run_cmd("make build")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("scripts/build.py", r.stderr)
+
+    def test_unless_bypass_and_heredoc_pass(self):
+        self.assertEqual(self.run_cmd("make build --quiet").returncode, 0)
+        self.assertEqual(self.run_cmd("RULEKIT_RAW=1 make build").returncode, 0)
+        self.assertEqual(self.run_cmd("cat > n.md <<'EOF'\nmake build\nEOF").returncode, 0)
+
+
+class LanguageGuardTest(TempDirCase):
+    SCRIPT = "claude_language_guard.py"
+    WORD = "".join(map(chr, (0x442, 0x435, 0x441, 0x442)))  # a Cyrillic word, built so this file stays ASCII
+
+    def edit(self, path: str, old: str, new: str, env=None):
+        return run_hook(self.SCRIPT, {"tool_name": "Edit", "tool_input": {
+            "file_path": path, "old_string": old, "new_string": new}}, env)
+
+    def test_added_foreign_line_blocked(self):
+        r = self.edit("src/app.py", "x = 1", f"x = 1  # {self.WORD}")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("[LANGUAGE-GUARD]", r.stderr)
+
+    def test_translation_code_span_and_locale_pass(self):
+        self.assertEqual(self.edit("src/app.py", f"# {self.WORD}", "# test").returncode, 0)
+        self.assertEqual(self.edit("README.md", "", f"Use `{self.WORD}` here.").returncode, 0)
+        self.assertEqual(self.edit("app/locales/ru.json", "", self.WORD).returncode, 0)
+        self.assertEqual(self.edit("src/app.py", "", self.WORD, {"RULEKIT_FILE_LANG_GUARD": "off"}).returncode, 0)
+
+
+class CommitReminderTest(TempDirCase):
+    SCRIPT = "claude_commit_reminder.py"
+
+    def commit(self, subject: str, name: str) -> str:
+        if not os.path.isdir(os.path.join(self.dir, ".git")):
+            subprocess.run(["git", "init", "-q", self.dir], check=True)
+        self.write(name, "x = 1\n")
+        git = ["git", "-C", self.dir, "-c", "user.name=t", "-c", "user.email=t@example.com"]
+        subprocess.run(git + ["add", name], check=True)
+        subprocess.run(git + ["commit", "-q", "-m", subject], check=True)
+        r = run_hook(self.SCRIPT, {"tool_name": "Bash", "cwd": self.dir,
+                                   "tool_input": {"command": f'git commit -m "{subject}"'}})
+        return r.stdout
+
+    def test_fix_commit_asks_for_rule_gap_check(self):
+        self.assertIn("rule-authoring", self.commit("fix: off-by-one in pager", "a.py"))
+
+    def test_code_commit_asks_for_knowledge(self):
+        self.assertIn("system entry", self.commit("feat: pager", "a.py"))
+
+    def test_docs_commit_silent(self):
+        self.assertEqual(self.commit("docs: readme", "notes.md"), "")
 
 
 if __name__ == "__main__":

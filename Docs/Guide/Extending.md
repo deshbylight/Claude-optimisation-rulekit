@@ -95,7 +95,12 @@ or maintenance.
 
 When the agent repeatedly runs a command whose raw output floods the context (builds, test runners,
 log readers), write a wrapper that prints only errors and the result, then add a PreToolUse hook that
-routes raw calls to it. Without the hook, adoption stays low.
+routes raw calls to it. Without the hook, adoption stays low. The kit's `Tools/claude_shell_guard.py`
+is that hook: add one route per wrapper to `.claude/rulekit/shell-routes.json`, for example
+
+    {"routes": [{"match": "(^|[;&|]\\s*)make\\s+build\\b", "say": "run `python scripts/build.py`"}]}
+
+`unless` (optional regex) lets matching commands through, e.g. ones already piped into `grep`.
 
 Wrapper checklist: `--help`, clear errors on bad input, bounded output, a stable exit code contract,
 configuration constants at the top of the script.

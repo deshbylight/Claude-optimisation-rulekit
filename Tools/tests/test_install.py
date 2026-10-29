@@ -2,6 +2,7 @@
 
     python -m unittest discover -s Tools/tests -v
 """
+import hashlib
 import json
 import os
 import subprocess
@@ -33,15 +34,16 @@ class InstallTest(unittest.TestCase):
         self._tmp.cleanup()
 
     def test_fresh_install_then_rerun_is_noop(self):
-        r = install(self.dir, "--lang", "German")
+        with open(os.path.join(self.dir, "Makefile"), "w", encoding="utf-8") as f:
+            f.write("build:\n\tcc x.c\ntest:\n\t./t\n")
+        r = install(self.dir)
         self.assertEqual(r.returncode, 0, r.stderr)
         for rel in ("CLAUDE.md", ".claude/rulekit/ADAPT.md", ".claude/rulekit/manifest.json",
                     "Tools/claude_read_guard.py", ".claude/reference-rules/git.md"):
             self.assertTrue(os.path.isfile(os.path.join(self.dir, rel)), rel)
-        self.assertEqual(settings(self.dir)["env"]["RULEKIT_REPLY_LANG"], "German")
-        with open(os.path.join(self.dir, "CLAUDE.md"), encoding="utf-8") as f:
-            self.assertIn("is in German", f.read())
-        again = install(self.dir, "--lang", "German")
+        self.assertEqual(settings(self.dir)["env"]["RULEKIT_VERIFY_RE"], r"make\ build|make\ test")
+        self.assertIn("Stop", settings(self.dir)["hooks"])
+        again = install(self.dir)
         self.assertIn("already up to date", again.stdout)
         self.assertFalse(os.path.exists(os.path.join(self.dir, "CLAUDE.rulekit.md")))
 
@@ -103,8 +105,30 @@ class InstallTest(unittest.TestCase):
         with open(os.path.join(self.dir, ".claude", "settings.json"), "w", encoding="utf-8") as f:
             json.dump(own, f)
         install(self.dir)
-        commands = [h["command"] for g in settings(self.dir)["hooks"]["PreToolUse"] for h in g["hooks"]]
+        commands = [h["command"] for g in settings(self.dir)["hooks"]["PreToolUse"] for h in g["hooks"]
+                    if "claude_read_guard" in h["command"]]
         self.assertEqual(commands, [cmd])
+
+    def test_rerun_retires_files_dropped_from_the_kit(self):
+        self.assertEqual(install(self.dir).returncode, 0)
+        old = os.path.join(self.dir, "Tools", "claude_old_hook.py")
+        with open(old, "w", encoding="utf-8", newline="\n") as f:
+            f.write("print()\n")
+        manifest = os.path.join(self.dir, ".claude", "rulekit", "manifest.json")
+        with open(manifest, encoding="utf-8") as f:
+            m = json.load(f)
+        m["files"]["Tools/claude_old_hook.py"] = hashlib.sha256(b"print()\n").hexdigest()
+        with open(manifest, "w", encoding="utf-8") as f:
+            json.dump(m, f)
+        s = settings(self.dir)
+        s["hooks"]["UserPromptSubmit"][0]["hooks"].append(
+            {"type": "command", "command": 'python "$CLAUDE_PROJECT_DIR/Tools/claude_old_hook.py"'})
+        with open(os.path.join(self.dir, ".claude", "settings.json"), "w", encoding="utf-8") as f:
+            json.dump(s, f)
+        r = install(self.dir)
+        self.assertIn("no longer part of the kit", r.stdout)
+        self.assertFalse(os.path.exists(old))
+        self.assertNotIn("claude_old_hook", json.dumps(settings(self.dir)))
 
     def test_invalid_settings_aborts_without_writing(self):
         os.makedirs(os.path.join(self.dir, ".claude"))

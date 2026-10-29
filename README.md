@@ -13,7 +13,7 @@ Clone the kit once, next to your projects (it is not copied into them as a whole
 
 ```
 git clone https://github.com/deshbylight/Claude-optimisation-rulekit rulekit
-python rulekit/install.py path/to/your-project --lang Russian --user
+python rulekit/install.py path/to/your-project --user
 ```
 
 Then open Claude Code in your project and send:
@@ -78,8 +78,9 @@ leaves `CLAUDE.md`, other settings keys and `.gitignore` entries and lists them 
 1. Copy `template/CLAUDE.md` to the repository root as `CLAUDE.md`, and `.claude/`, `Tools/` and
    `Docs/Review/` and `Docs/plans/` into it; merge `user/settings.json` into `~/.claude/settings.json` (see below).
 2. Fill the `<placeholders>` in `CLAUDE.md`; delete lines that do not apply.
-3. Optional: set `env.RULEKIT_REPLY_LANG` in `.claude/settings.json` (e.g. `"Russian"`) when you chat
-   in a language other than English.
+3. Set `env.RULEKIT_VERIFY_RE` in `.claude/settings.json` to a regex of your build/test commands
+   (verify gate) and add routes to `.claude/rulekit/shell-routes.json` if you have wrappers. Chatting
+   in another language: change the `Chat language:` line of `CLAUDE.md`.
 4. Add `.claude/handoff/` and `.claude/settings.local.json` to `.gitignore`. Optional: copy
    `.claude/settings.local.json.example` to `.claude/settings.local.json` for a safe allow list
    (read-only git, scoped `git add`/`commit`, the kit's tools) and `ask` on destructive git and `rm`.
@@ -153,7 +154,10 @@ Verify after merging: a fresh chat's `/context` shows the skills and tool totals
 | `claude_read_guard.py` | PreToolUse Read/Write/Bash/PowerShell | Blocks whole-file reads over 300 lines / 40k chars, full reads of persisted tool output over 8k chars, shell slices over 120 lines, `Write` over an existing 300+ line file | constants at the top; `RULEKIT_FULL_READ` in a shell command bypasses it |
 | `claude_topic_gate.py` | UserPromptSubmit | At ≥100k context, asks the model whether the new prompt belongs to this chat, else `handoff` | `RULEKIT_TOPIC_GATE_KTOK`, `RULEKIT_TOPIC_GATE_OFF` |
 | `claude_session_length.py` | UserPromptSubmit | After ≥200 model calls, ≥2 compactions, or a `git commit` at ≥100k context: recommends a fresh chat | `RULEKIT_LONG_SESSION_CALLS`, `_COMPACTS`, `_CTX`, `_OFF` |
-| `claude_reply_language.py` | UserPromptSubmit | Re-asserts the chat language each prompt | `RULEKIT_REPLY_LANG` (empty = off) |
+| `claude_shell_guard.py` | PreToolUse Bash/PowerShell | Routes raw commands (builds, log reads, broad greps) to the project's wrappers; routes in `.claude/rulekit/shell-routes.json`, empty by default | `RULEKIT_RAW` in a command bypasses; `RULEKIT_SHELL_GUARD_OFF` |
+| `claude_language_guard.py` | PreToolUse Edit/Write | Blocks edits that add non-English lines to files (Markdown code spans and fences, locale files skipped); translating an existing line passes | `RULEKIT_FILE_LANG_SKIP` (path regex), `RULEKIT_FILE_LANG_GUARD=off` |
+| `claude_commit_reminder.py` | PostToolUse Bash | After `git commit`: fix → rule-gap check (`RR/rule-authoring.md`); other source change → capture what it taught (system entry, ADR, failure log) | `RULEKIT_COMMIT_REMINDER_OFF` |
+| `claude_verify_gate.py` | Stop | Source edited after the last successful build/test → once per edit, asks to run it or to say "not built" with the blocker | `RULEKIT_VERIFY_RE` (build/test commands; set by the installer from the detected commands, empty = off), `RULEKIT_SOURCE_RE`, `RULEKIT_VERIFY_GATE_OFF` |
 
 A `+` at the start of a prompt tells both gates to stay in the current chat.
 

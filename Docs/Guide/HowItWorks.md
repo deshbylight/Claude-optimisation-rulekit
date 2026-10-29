@@ -38,7 +38,8 @@ runs on events; they cannot be ignored.
 |------|-----------|
 | Behavior that needs judgment (when to ask, how to report) | Rule |
 | A mechanical limit (no whole-file reads, no raw build output) | PreToolUse hook that blocks with a reason |
-| A reminder that decays over a long chat (reply language) | UserPromptSubmit hook that injects one line |
+| A reminder that decays over a long chat (topic, session length) | UserPromptSubmit hook that injects one line |
+| A reminder tied to an action (after a commit) | PostToolUse hook that injects one line |
 | A check before the turn ends ("edited code, did not build") | Stop hook |
 
 Hook contract used in this kit (see the official Claude Code hooks documentation for the full schema):

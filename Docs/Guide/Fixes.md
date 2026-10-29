@@ -133,9 +133,11 @@ Why: at ≥100k context the model first decides whether the prompt belongs to th
 if not, `handoff` writes a ≤50-line file with only the facts the new request needs. `+` overrides.
 Fixes: paying for an unrelated context; also the model mixing two tasks.
 
-**C4. Reply-language reminder hook.**
+**C4. Reply-language reminder hook (removed in 0.5.0).**
 Problem: the chat language drifted back to English in long chats. Why: one injected line per
-prompt is cheaper than a stronger L1 paragraph and does not decay. Fixes: language drift.
+prompt is cheaper than a stronger L1 paragraph and does not decay. Fixes: language drift. Removed
+from the kit: the default chat language is English, and a project that chats in another language
+changes the `Chat language:` line (or keeps its own hook).
 
 **C5. Cache TTL, compaction window, effort level.**
 Why: 5-minute cache writes cost 1.25× base input vs 2× for 1-hour; work in bursts pays the
@@ -207,7 +209,27 @@ then answer with the evidence.
 **D14. File language English, chat language free.**
 Problem: mixed-language comments and docs. Why: files are read by tools, search and other people;
 the chat is for the owner. CI flags non-English text (`Tools/check_kit.py`); a PreToolUse guard
-on Edit/Write is the enforcing form *(pattern)*.
+on Edit/Write is the enforcing form: `claude_language_guard.py` blocks added non-English lines and
+lets translations through, since the rule alone loses to a non-English chat.
+
+**D15. Verify gate before the turn ends (`claude_verify_gate.py`).**
+Problem: "done" after a source edit with no build or test at all; "green build = built, unverified"
+lived only in prose. Why a Stop hook: it sees the whole turn (edit order vs successful verify
+commands in the transcript) and blocks once per last edit, so it cannot loop. Fixes: unbuilt and
+untested changes reported as finished.
+
+**D16. Shell routes to wrappers (`claude_shell_guard.py`).**
+Problem: raw builds, full log reads and repo-wide greps were the largest share of shell output
+(measured: grep ~21% of all Bash output; raw log reads outnumbered the log wrapper ~20:1), even
+with a rule naming the wrapper. Why a route table: the wrappers differ per project, the mechanism
+does not; `RULEKIT_RAW` keeps an explicit escape. Fixes: context floods and late failures from raw
+tool output.
+
+**D17. Commit reminder (`claude_commit_reminder.py`).**
+Problem: the rule-gap check after a fix and knowledge capture after a code change depended on the
+model remembering a `CLAUDE.md` line at the end of a long task. Why PostToolUse on `git commit`: the
+commit is the moment the change is final and its subject says whether it was a fix. Fixes: the same
+class of bug coming back with no rule; lessons that stay only in a closed chat.
 
 ## E. The loop that produced this list
 

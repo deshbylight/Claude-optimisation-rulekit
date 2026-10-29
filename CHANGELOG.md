@@ -2,7 +2,16 @@
 
 Format: newest first; one line per user-visible change.
 
-## Unreleased
+## 0.5.0 — 2026-10-29
+
+- New hooks: `claude_verify_gate.py` (Stop: no "done" after source edits without a successful
+  build/test), `claude_shell_guard.py` (routes raw commands to wrappers via
+  `.claude/rulekit/shell-routes.json`), `claude_language_guard.py` (blocks added non-English file
+  text), `claude_commit_reminder.py` (rule-gap check after fix commits, knowledge capture after code).
+- `install.py` sets `env.RULEKIT_VERIFY_RE` from the detected build/test commands, and on re-run
+  removes unchanged files a previous version installed that the kit no longer ships (with their hooks).
+- Removed the reply-language hook and `--lang`: chat is English by default; change the
+  `Chat language:` line of `CLAUDE.md` for another language.
 
 - New on-demand rules: `architecture.md` (code decomposition from scratch: pure core vs boundary,
   Config/Output/Transient, dense ids and O(1) indexes, phases, determinism, per-system docs) and

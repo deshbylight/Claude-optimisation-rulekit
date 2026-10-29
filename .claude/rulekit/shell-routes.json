@@ -1,0 +1,8 @@
+{
+  "_doc": "Routes for Tools/claude_shell_guard.py: a shell command matching `match` (and not `unless`) is blocked with `say`. Add one route per wrapper the project has; see Docs/Guide/Extending.md. Empty list = the guard does nothing.",
+  "_example": [
+    {"match": "(^|[;&|]\\s*)make\\s+build\\b", "say": "run `python scripts/build.py` (prints only errors and the result)"},
+    {"match": "\\b(cat|tail|head|less)\\s+\\S*logs?/\\S+\\.log\\b", "unless": "\\|\\s*(grep|head|tail)\\b", "say": "run `python scripts/log_tail.py <log> --grep \"<re>\"`"}
+  ],
+  "routes": []
+}

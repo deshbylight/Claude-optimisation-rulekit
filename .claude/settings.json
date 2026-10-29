@@ -6,7 +6,7 @@
   "includeGitInstructions": false,
   "disableClaudeAiConnectors": true,
   "env": {
-    "RULEKIT_REPLY_LANG": ""
+    "RULEKIT_VERIFY_RE": "check_kit\\.py|unittest"
   },
   "skillOverrides": {
     "claude-in-chrome": "off",
@@ -15,9 +15,24 @@
   },
   "permissions": {
     "deny": [
-      "Artifact", "SendFeedback", "Workflow", "ScheduleWakeup", "ReportFindings", "ListAgents",
-      "CronCreate", "CronDelete", "CronList", "RemoteTrigger", "PushNotification", "DesignSync",
-      "EnterWorktree", "ExitWorktree", "NotebookEdit", "Glob", "Agent", "SendMessage"
+      "Artifact",
+      "SendFeedback",
+      "Workflow",
+      "ScheduleWakeup",
+      "ReportFindings",
+      "ListAgents",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "RemoteTrigger",
+      "PushNotification",
+      "DesignSync",
+      "EnterWorktree",
+      "ExitWorktree",
+      "NotebookEdit",
+      "Glob",
+      "Agent",
+      "SendMessage"
     ]
   },
   "hooks": {
@@ -28,6 +43,26 @@
           {
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Tools/claude_read_guard.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Tools/claude_shell_guard.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Tools/claude_language_guard.py\"",
             "timeout": 10
           }
         ]
@@ -45,10 +80,28 @@
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/Tools/claude_session_length.py\"",
             "timeout": 10
-          },
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/Tools/claude_reply_language.py\"",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Tools/claude_commit_reminder.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/Tools/claude_verify_gate.py\"",
             "timeout": 10
           }
         ]
