@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "promptCacheTtl": "5m",
+  "subagentPromptCacheTtl": "5m",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "medium",
+      "autoCompactWindow": 250000
+    },
+    "claude-sonnet-5-5": {
+      "autoCompactWindow": 250000
+    },
+    "claude-fable-5-1": {
+      "autoCompactWindow": 200000
+    }
+  },
+  "skillOverrides": {
+    "anthropic-skills:consolidate-memory": "off",
+    "anthropic-skills:docs": "off",
+    "anthropic-skills:docx": "name-only",
+    "anthropic-skills:explain-usage": "name-only",
+    "anthropic-skills:google-workspace": "off",
+    "anthropic-skills:import-memory": "off",
+    "anthropic-skills:morning": "off",
+    "anthropic-skills:pdf": "off",
+    "anthropic-skills:pptx": "off",
+    "anthropic-skills:schedule": "off",
+    "anthropic-skills:setup-claude": "off",
+    "anthropic-skills:skill-creator": "off",
+    "anthropic-skills:xlsx": "off",
+    "anthropic-skills:chrome-browser": "off",
+    "anthropic-skills:computer-use": "off",
+    "anthropic-skills:built-in-browser": "off",
+    "anthropic-skills:deep-research": "off",
+    "dataviz": "off",
+    "claude-api": "off",
+    "artifact-capabilities": "off",
+    "artifact-diagramming": "off",
+    "artifact-design": "off",
+    "plugin-authoring": "off",
+    "keybindings-help": "off",
+    "fewer-permission-prompts": "off",
+    "init": "off",
+    "security-review": "off",
+    "loop": "off",
+    "schedule": "off",
+    "run": "off",
+    "code-review": "off",
+    "update-config": "off",
+    "brainstorming": "name-only",
+    "writing-plans": "name-only",
+    "executing-plans": "name-only",
+    "systematic-debugging": "name-only",
+    "receiving-code-review": "name-only",
+    "verification-before-completion": "off"
+  },
+  "enabledPlugins": {},
+  "feedbackDrafts": "notify",
+  "agentPushNotifEnabled": false
+}

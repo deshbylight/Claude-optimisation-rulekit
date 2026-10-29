@@ -1,0 +1,5 @@
+.claude/handoff/
+.claude/settings.local.json
+__pycache__/
+_work_*/
+.claude/kit-scan-terms.txt

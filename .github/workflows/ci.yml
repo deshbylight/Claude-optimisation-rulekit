@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.9", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Kit checks (JSON, language, machine paths, private terms, links, frontmatter)
+        env:
+          RULEKIT_SCAN_TERMS: ${{ secrets.RULEKIT_SCAN_TERMS }}
+        run: python Tools/check_kit.py
+      - name: Hook tests
+        run: python -m unittest discover -s Tools/tests -v
