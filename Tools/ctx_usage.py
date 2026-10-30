@@ -4,7 +4,8 @@
 Claude Code pipes statusline JSON (with ``transcript_path``) to stdin; the script reads the
 last main-chain assistant ``usage`` record and prints one line, e.g. ``ctx 20.5k/250k (8%)``.
 Context = input_tokens + cache_creation_input_tokens + cache_read_input_tokens. The value
-lags by one turn: the prompt being typed is not counted yet.
+lags by one turn: the prompt being typed is not counted yet. Right after a compaction (no
+assistant turn since) the size is the ``postTokens`` of the ``compact_boundary`` record.
 
 Wired in .claude/settings.json -> statusLine. Manual use:
     python Tools/ctx_usage.py --transcript <session>.jsonl
@@ -36,7 +37,12 @@ def _context_tokens(line: str) -> Optional[int]:
     except json.JSONDecodeError:
         # The first line of a tail chunk is usually cut mid-record; it is not data.
         return None
-    if entry.get("type") != "assistant" or entry.get("isSidechain"):
+    if entry.get("isSidechain"):
+        return None
+    if entry.get("type") == "system" and entry.get("subtype") == "compact_boundary":
+        # Newer than every assistant usage before it: the context is the compacted size.
+        return (entry.get("compactMetadata") or {}).get("postTokens")
+    if entry.get("type") != "assistant":
         return None
     usage = (entry.get("message") or {}).get("usage")
     if not usage:

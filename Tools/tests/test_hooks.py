@@ -168,6 +168,24 @@ class SessionLengthTest(TempDirCase):
         self.assertEqual(r.stdout, "")
 
 
+class StatusLineTest(TempDirCase):
+    SCRIPT = "ctx_usage.py"
+
+    def status(self, lines) -> str:
+        return run_hook(self.SCRIPT, {"transcript_path": self.transcript(lines)}).stdout.strip()
+
+    def test_shows_last_main_turn(self):
+        self.assertEqual(self.status([assistant_line(1, 10_000), assistant_line(2, 50_000)]),
+                         "ctx 50.0k/250k (20%)")
+
+    def test_compaction_resets_to_post_tokens(self):
+        boundary = compact({"type": "system", "subtype": "compact_boundary", "isSidechain": False,
+                            "compactMetadata": {"trigger": "manual", "preTokens": 200_000, "postTokens": 12_000}})
+        self.assertEqual(self.status([assistant_line(1, 200_000), boundary]), "ctx 12.0k/250k (4%)")
+        self.assertEqual(self.status([assistant_line(1, 200_000), boundary, assistant_line(2, 30_000)]),
+                         "ctx 30.0k/250k (12%)")
+
+
 def tool_use(n: int, name: str, **tool_input) -> str:
     return assistant_line(n, 20_000, [{"type": "tool_use", "id": f"toolu_{n}", "name": name, "input": tool_input}])
 
