@@ -2,6 +2,11 @@
 
 Format: newest first; one line per user-visible change.
 
+## Unreleased
+
+- New status line `Tools/ctx_usage.py`: current context size (`ctx 20.5k/250k (8%)`) from the
+  transcript, zero chat tokens; wired as `statusLine` (an existing one is kept, uninstall removes ours).
+
 ## 0.5.0 — 2026-10-29
 
 - New hooks: `claude_verify_gate.py` (Stop: no "done" after source edits without a successful

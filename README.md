@@ -128,6 +128,7 @@ leaves `CLAUDE.md`, other settings keys and `.gitignore` entries and lists them 
 | `disableClaudeAiConnectors: true` | claude.ai connectors (MCP tools and their instructions) leave every call; measured ~1.7k tokens for one connector. Remove it if you use connectors in this repo |
 | `skillOverrides` | Turns off built-in skills you do not use, so their descriptions leave the context |
 | `permissions.deny` | Removes unused tools from the toolset. `Agent` (subagents) and `Glob` are denied on purpose: subagents multiply cost, `Glob` duplicates Grep/shell. Remove entries you need |
+| `statusLine` | `Tools/ctx_usage.py` shows the current context size under the prompt (`ctx 20.5k/250k (8%)`), read from the transcript at no token cost. An existing `statusLine` is kept |
 | `hooks` | See below |
 
 ## User settings (`user/settings.json`)
@@ -165,6 +166,9 @@ A `+` at the start of a prompt tells both gates to stay in the current chat.
 
 - `python Tools/ctx_stats.py --last 15` — per session: calls, start context, mean/max context,
   growth per call, compactions. `--breakdown <id-prefix>` splits the peak context by source.
+- `Tools/ctx_usage.py` — the status line: context size of the last turn (lags one turn).
+  `--window N` sets the denominator (default 250k, match your `autoCompactWindow`);
+  `--transcript <file>.jsonl` for manual use.
 - `python Tools/claude_session_grep.py <id> --prompts` / `<id> "<regex>"` — look into an old chat
   without loading it.
 

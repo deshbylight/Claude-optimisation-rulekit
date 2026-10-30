@@ -58,6 +58,7 @@ FILES = [
     ".claude/rulekit/shell-routes.json",
     "Tools/claude_session_grep.py",
     "Tools/ctx_stats.py",
+    "Tools/ctx_usage.py",
     "Docs/Review/OpenDefects.md",
     "Docs/plans/_TEMPLATE.md",
 ]
@@ -171,12 +172,12 @@ class Installer:
         if scripts and os.path.isfile(settings_path):
             with open(settings_path, encoding="utf-8") as f:
                 current = json.load(f)
-            unwired = unwire_hooks(current.get("hooks", {}), scripts)
+            unwired = unwire_hooks(current.get("hooks", {}), scripts) + unwire_status_line(current, scripts)
             if unwired and not self.dry_run:
                 with open(settings_path, "w", encoding="utf-8", newline="\n") as f:
                     json.dump(current, f, indent=2, ensure_ascii=False)
                     f.write("\n")
-            self.done += [f".claude/settings.json: removed hook {r}" for r in unwired]
+            self.done += [f".claude/settings.json: removed {r}" for r in unwired]
 
     def uninstall(self) -> int:
         path = os.path.join(self.target, MANIFEST)
@@ -204,15 +205,15 @@ class Installer:
             with open(settings_path, encoding="utf-8") as f:
                 current = json.load(f)
             scripts = {hook_key(f"Tools/{os.path.basename(r)}") for r in files if r.startswith("Tools/")}
-            removed = unwire_hooks(current.get("hooks", {}), scripts)
+            removed = unwire_hooks(current.get("hooks", {}), scripts) + unwire_status_line(current, scripts)
             if removed:
-                if not current["hooks"]:
+                if "hooks" in current and not current["hooks"]:
                     del current["hooks"]
                 if not self.dry_run:
                     with open(settings_path, "w", encoding="utf-8", newline="\n") as f:
                         json.dump(current, f, indent=2, ensure_ascii=False)
                         f.write("\n")
-                self.done += [f".claude/settings.json: removed hook {r}" for r in removed]
+                self.done += [f".claude/settings.json: removed {r}" for r in removed]
         if not self.dry_run:
             os.remove(path)
             for rel in sorted({os.path.dirname(r) for r in files} | {os.path.dirname(MANIFEST)}, key=len, reverse=True):
@@ -286,6 +287,15 @@ def unwire_hooks(hooks: dict, scripts: set) -> list:
     return removed
 
 
+def unwire_status_line(settings: dict, scripts: set) -> list:
+    """Drops `statusLine` when it runs one of `scripts`; returns the removed entry."""
+    command = (settings.get("statusLine") or {}).get("command")
+    if command and hook_key(command) in scripts:
+        del settings["statusLine"]
+        return [f"statusLine {hook_key(command)}"]
+    return []
+
+
 def hook_key(command: str) -> str:
     """The script a hook command runs, so `python x.py` and `python3 x.py` count as the same hook."""
     m = HOOK_SCRIPT_RE.search(command or "")
@@ -321,6 +331,9 @@ def python_command() -> str:
 
 
 def set_python(settings: dict, python: str):
+    status = settings.get("statusLine") or {}
+    if status.get("command", "").startswith("python "):
+        status["command"] = python + status["command"][len("python"):]
     for groups in settings.get("hooks", {}).values():
         for group in groups:
             for hook in group.get("hooks", []):

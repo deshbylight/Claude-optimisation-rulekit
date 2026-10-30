@@ -5,6 +5,10 @@
   "autoMemoryEnabled": false,
   "includeGitInstructions": false,
   "disableClaudeAiConnectors": true,
+  "statusLine": {
+    "type": "command",
+    "command": "python \"$CLAUDE_PROJECT_DIR/Tools/ctx_usage.py\""
+  },
   "env": {
     "RULEKIT_VERIFY_RE": "check_kit\\.py|unittest"
   },

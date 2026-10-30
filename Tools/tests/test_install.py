@@ -5,6 +5,7 @@
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -97,6 +98,21 @@ class InstallTest(unittest.TestCase):
         commands = [h["command"] for g in settings(self.dir)["hooks"]["PreToolUse"] for h in g["hooks"]]
         self.assertEqual(commands, ["own"])
         self.assertNotIn("UserPromptSubmit", settings(self.dir)["hooks"])
+        self.assertNotIn("statusLine", settings(self.dir))
+
+    def test_status_line_wired_and_existing_one_kept(self):
+        self.assertEqual(install(self.dir).returncode, 0)
+        self.assertIn("Tools/ctx_usage.py", settings(self.dir)["statusLine"]["command"])
+        other = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, other, ignore_errors=True)
+        os.makedirs(os.path.join(other, ".claude"))
+        own = {"statusLine": {"type": "command", "command": "own"}}
+        with open(os.path.join(other, ".claude", "settings.json"), "w", encoding="utf-8") as f:
+            json.dump(own, f)
+        self.assertEqual(install(other).returncode, 0)
+        self.assertEqual(settings(other)["statusLine"], own["statusLine"])
+        self.assertEqual(install(other, "--uninstall").returncode, 0)
+        self.assertEqual(settings(other)["statusLine"], own["statusLine"])
 
     def test_hook_with_other_interpreter_not_duplicated(self):
         os.makedirs(os.path.join(self.dir, ".claude"))
