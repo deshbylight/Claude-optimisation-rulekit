@@ -6,7 +6,8 @@ Format: newest first; one line per user-visible change.
 
 - New status line `Tools/ctx_usage.py`: current context size (`ctx 20.5k/250k (8%)`) from the
   transcript, zero chat tokens; wired as `statusLine` (an existing one is kept, uninstall removes ours).
-  After a compaction it shows the compacted size until the next reply.
+  After a compaction it shows the compacted size until the next reply. The denominator is the
+  session model's `autoCompactWindow` from settings (`*` = built-in 250k default).
 
 ## 0.5.0 — 2026-10-29
 

@@ -167,7 +167,8 @@ A `+` at the start of a prompt tells both gates to stay in the current chat.
 - `python Tools/ctx_stats.py --last 15` — per session: calls, start context, mean/max context,
   growth per call, compactions. `--breakdown <id-prefix>` splits the peak context by source.
 - `Tools/ctx_usage.py` — the status line: context size of the last turn (lags one turn).
-  `--window N` sets the denominator (default 250k, match your `autoCompactWindow`);
+  The denominator is the model's `autoCompactWindow` (`modelSettings.<id>` or top-level, from user,
+  project and local settings; `250k*` when none is set); `--window N` / `--model <id>` override it;
   `--transcript <file>.jsonl` for manual use.
 - `python Tools/claude_session_grep.py <id> --prompts` / `<id> "<regex>"` — look into an old chat
   without loading it.
